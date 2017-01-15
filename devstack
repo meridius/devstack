@@ -2,9 +2,10 @@
 
 # Configuration
 PREFIX=devstack
-COMPOSE=<path-to-your>/docker-compose.yml
+COMPOSE=docker-compose.yml
 USER=dfx
 VERSION=1.1
+PHP_SERVICE=php
 
 # Functions
 usage() {
@@ -16,113 +17,265 @@ Control your devstack.
 Version: $VERSION
 
 Options:
-
-  -h          Display this help and exit.
+    -h          Display this help and exit.
 
 Commands:
-  up          Start the devstack.
-  build       Build the devstack.
-  reup        Build & Start the devstack.
-  stop        Stop the devstack.
-  die         Destroy the devstack.
-  logs        Follow the devstack logs.
-  exec        Exec command in container.
-  g|go        Attach container in devstack.
-  gu|gou      Attach container in devstack as user.
+    Devstack:
+        s | up | start            Start
+        sl | start-logs           Start and follow logs
+        r | restart               Restart
+        rl | restart-logs         Restart and follow logs
+        b | build                 Build
+        ru | reup                 Build & Start
+        k | stop                  Stop
+        d | destroy               Destroy
+        l | logs                  Follow the devstack logs
+
+    Service:
+        reb | rebuild [service]   Rebuild service
+        ps | list                 List services in devstack
+        e | exec                  Exec command in service
+        g | go [service]          Attach to specified service in devstack
+        gu | gou                  Attach to specified service in devstack as predefined user
+
+    Special:
+        ncc                       Clear Nette cache of php service
+        a | adminer               Run service with Adminer on http://localhost:81
+        m | migrations            The Nextras Migrations submodule
 EOF
 }
 
 call() {
-	docker-compose -p $PREFIX -f $COMPOSE $*
+    # current directory specifies project name
+    docker-compose --file $COMPOSE $*
 }
 
 up() {
-	call up -d
+    # -d = detached mode
+    call up -d --remove-orphans
 }
 
 build() {
-	call build
+    call build
 }
 
 reup() {
-	build
-	up
+    build
+    up
 }
 
 stop() {
-	call stop
+    call stop
 }
 
 destroy() {
-	call stop
-	call rm --all
+    call stop
+    call rm $@
+}
+
+rebuild() {
+    shift
+    # echo destroy $@
+    destroy $@
+    build
+}
+
+list() {
+    call ps
 }
 
 logs() {
-	call logs -f
+    call logs --follow
 }
 
 fire() {
-	call exec $1
+    shift
+    call exec $*
 }
 
 go() {
-	call exec $1 /bin/bash
+    call exec $1 /bin/bash
 }
 
 gou() {
-	call exec $1 su $USER
+    call exec $1 su $USER
 }
+
+netteClearCache() {
+    # call exec ${PHP_SERVICE} git clean -fdX ./temp/
+
+    call exec ${PHP_SERVICE} rm -fr /var/www/html/temp/cache/latte
+    call exec ${PHP_SERVICE} rm -fr /var/www/html/temp/cache/Nette.Configurator
+    call exec ${PHP_SERVICE} rm -fr /var/www/html/temp/cache/_Nette.RobotLoader
+    call exec ${PHP_SERVICE} rm -fr /var/www/html/temp/cache/_orm%00metadata
+    remainingFiles=`call exec ${PHP_SERVICE} ls /var/www/html/temp/cache`
+    [[ ! -z $remainingFiles ]] \
+        && echo -e "Remaining files: \n${remainingFiles}" \
+        || echo "Cleared"
+}
+
+adminer() {
+    docker run -d -p 81:80 dockette/adminer
+}
+
+migrationsUsage() {
+cat << EOF
+Usage: ${0##*/} migrations
+
+Nextras Migrations submodule for Devstack
+
+Options:
+    -h | --help     Detailed help for each command.
+                    Other arguments are passed too.
+
+Commands:
+    c | create      Command migrations:create
+                    Creates new migration file with proper name (e.g. 2015-03-14-130836-label.sql)
+        <type>      One of S/B/D (structures/basic data/dummy data)
+        <label>     Short description
+
+    n | continue    Command migrations:continue
+                    Updates database schema by running all new migrations.
+                    If table 'migrations' does not exist in current database, it is created automatically.
+        [--production]
+                    Will not import dummy data
+
+    r | reset       Command migrations:reset
+                    Drops current database and recreates it from scratch (runs all migrations).
+        [--production]
+                    Will not import dummy data
+EOF
+}
+
+_getMigrationsCmd() {
+    action=$1
+    index="php www/index.php"
+    migrationsCmd="migrations:"
+    echo $index ${migrationsCmd}${action}
+}
+
+migrationsCreate() {
+    migrationsCmd=`_getMigrationsCmd "create"`
+    call exec ${PHP_SERVICE} $migrationsCmd $*
+}
+
+migrationsContinue() {
+    migrationsCmd=`_getMigrationsCmd "continue"`
+    call exec ${PHP_SERVICE} $migrationsCmd $*
+}
+
+migrationsReset() {
+    migrationsCmd=`_getMigrationsCmd "reset"`
+    call exec ${PHP_SERVICE} $migrationsCmd $*
+}
+
 
 # Main switch
 case "$1" in
-	up)
-		up
-		exit 0
-		;;
-	build)
-		build
-		exit 0
-		;;
-	reup)
-		reup
-		exit 0
-		;;
-	stop)
-		stop
-		exit 0
-		;;
-	die)
-		destroy
-		exit 0
-		;;
-	logs)
-		logs
-		exit 0
-		;;
-	exec)
-		fire
-		exit 0
-		;;
-	g)
-		go $2 $3
-		exit 0
-		;;
-	go)
-		go $2 $3
-		exit 0
-		;;
-	gu)
-		gou $2
-		exit 0
-		;;
-	gou)
-		gou $2
-		exit 0
-		;;
-	*)
-		usage
-		exit 1
-		;;
+    s|up|start)
+        up
+        exit 0
+        ;;
+    sl|start-logs)
+        up && logs
+        exit 0
+        ;;
+    r|restart)
+        stop && up
+        exit 0
+        ;;
+    rl|restart-logs)
+        stop && up && logs
+        exit 0
+        ;;
+    b|build)
+        build
+        exit 0
+        ;;
+    ru|reup)
+        reup
+        exit 0
+        ;;
+    k|stop)
+        stop
+        exit 0
+        ;;
+    reb|rebuild)
+        rebuild $@
+        exit 0
+        ;;
+    d|destroy)
+        destroy
+        exit 0
+        ;;
+    ps|list)
+        list
+        exit 0
+        ;;
+    l|logs)
+        logs
+        exit 0
+        ;;
+    e|exec)
+        fire $@
+        exit 0
+        ;;
+    g|go)
+        go $2 $3
+        exit 0
+        ;;
+    gu|gou)
+        gou $2
+        exit 0
+        ;;
+    ncc)
+        netteClearCache
+        exit 0
+        ;;
+    a|adminer)
+        adminer
+        exit 0
+        ;;
+    m|migrations)
+        shift
+        case "$1" in
+            c|create)
+                shift
+                if [[ -z "$1" ]]; then
+                    migrationsCreate -h
+                    exit 1
+                fi
+                migrationsCreate $@
+                exit 0
+                ;;
+            n|continue)
+                shift
+                migrationsContinue $@
+                exit 0
+                ;;
+            r|reset)
+                shift
+                migrationsReset $@
+                exit 0
+                ;;
+            -h)
+                migrationsCreate -h
+                echo -e "\n-----\n"
+                migrationsContinue -h
+                echo -e "\n-----\n"
+                migrationsReset -h
+                exit 1
+                ;;
+            *)
+                migrationsUsage
+                exit 1
+                ;;
+        esac
+        exit 0
+        ;;
+    *)
+        usage
+        exit 1
+        ;;
 esac
 shift
