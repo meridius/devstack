@@ -10,7 +10,7 @@ VERSION=1.1
 PHP_SERVICE=php
 
 # Functions
-usage() {
+ds_usage() {
 cat << EOF
 Usage: ${0##*/} [-h]
 
@@ -48,80 +48,83 @@ EOF
 }
 
 # current directory specifies project name
-call() {
+ds_call() {
     USER_NAME=${USER_NAME} \
     USER_UID=${USER_UID} \
     USER_GID=${USER_GID} \
     docker-compose --file $COMPOSE $*
 }
 
-up() {
-    # -d = detached mode
-    call up -d --remove-orphans $@
+ds_start() {
+    # -d = Detached mode: Run containers in the background, print new container names.
+    ds_call up -d --remove-orphans $@
 }
 
-build() {
-    call build
+ds_build() {
+    ds_call build
 }
 
-reup() {
-    build
-    up
+ds_reup() {
+    ds_build
+    ds_start
 }
 
-stop() {
-    call stop
+ds_stop() {
+    ds_call stop
 }
 
-destroy() {
-    call stop $@
-    call rm -f $@
+ds_destroy() {
+    ds_call stop $@
+    # -f = Don't ask to confirm removal.
+    ds_call rm -f $@
 }
 
-rebuild() {
-    destroy $@
-    build
+ds_rebuild() {
+    ds_destroy $@
+    ds_build
 }
 
-list() {
-    call ps
+ds_list() {
+    ds_call ps
 }
 
-logs() {
-    call logs --follow $@
+ds_logs() {
+    # --follow = Follow log output.
+    ds_call logs --follow $@
 }
 
-fire() {
-    shift
-    call exec $*
+ds_exec() {
+    ds_call exec $*
 }
 
-go() {
-    call exec $1 /bin/bash
+ds_go() {
+    ds_call exec $1 /bin/bash
 }
 
-gou() {
-    call exec $1 su $USER_NAME
+ds_gou() {
+    ds_call exec $1 su $USER_NAME
 }
 
-netteClearCache() {
-    # call exec ${PHP_SERVICE} git clean -fdX ./temp/
+ds_netteClearCache() {
+    # ds_call exec ${PHP_SERVICE} git clean -fdX ./temp/
 
-    call exec ${PHP_SERVICE} rm -fr /var/www/html/temp/cache/latte
-    call exec ${PHP_SERVICE} rm -fr /var/www/html/temp/cache/Nette.Configurator
-    call exec ${PHP_SERVICE} rm -fr /var/www/html/temp/cache/_Nette.RobotLoader
-    call exec ${PHP_SERVICE} rm -fr /var/www/html/temp/cache/_orm%00metadata
-    remainingFiles=`call exec ${PHP_SERVICE} ls /var/www/html/temp/cache`
+    ds_call exec ${PHP_SERVICE} rm -fr /var/www/html/temp/cache/latte
+    ds_call exec ${PHP_SERVICE} rm -fr /var/www/html/temp/cache/Nette.Configurator
+    ds_call exec ${PHP_SERVICE} rm -fr /var/www/html/temp/cache/_Nette.RobotLoader
+    ds_call exec ${PHP_SERVICE} rm -fr /var/www/html/temp/cache/_orm%00metadata
+    remainingFiles=`ds_call exec ${PHP_SERVICE} ls /var/www/html/temp/cache`
     [[ ! -z $remainingFiles ]] \
         && echo -e "Remaining files: \n${remainingFiles}" \
         || echo "Cleared"
 }
 
-adminer() {
+ds_adminer_run() {
+    # -d = Run container in background and print container ID
+    # -p = Publish a container's port(s) to the host (default [])
     docker run -d -p 81:80 dockette/adminer
 }
 
-migrationsUsage() {
+ds_migrations_usage() {
 cat << EOF
 Usage: ${0##*/} migrations
 
@@ -150,26 +153,26 @@ Commands:
 EOF
 }
 
-_getMigrationsCmd() {
+ds_migrations_get_cmd() {
     action=$1
     index="php www/index.php"
     migrationsCmd="migrations:"
     echo $index ${migrationsCmd}${action}
 }
 
-migrationsCreate() {
-    migrationsCmd=`_getMigrationsCmd "create"`
-    call exec ${PHP_SERVICE} $migrationsCmd $*
+ds_migrations_create() {
+    migrationsCmd=`ds_migrations_get_cmd "create"`
+    ds_call exec ${PHP_SERVICE} $migrationsCmd $*
 }
 
-migrationsContinue() {
-    migrationsCmd=`_getMigrationsCmd "continue"`
-    call exec ${PHP_SERVICE} $migrationsCmd $*
+ds_migrations_continue() {
+    migrationsCmd=`ds_migrations_get_cmd "continue"`
+    ds_call exec ${PHP_SERVICE} $migrationsCmd $*
 }
 
-migrationsReset() {
-    migrationsCmd=`_getMigrationsCmd "reset"`
-    call exec ${PHP_SERVICE} $migrationsCmd $*
+ds_migrations_reset() {
+    migrationsCmd=`ds_migrations_get_cmd "reset"`
+    ds_call exec ${PHP_SERVICE} $migrationsCmd $*
 }
 
 
@@ -177,70 +180,71 @@ migrationsReset() {
 case "$1" in
     s|up|start)
         shift
-        up $@
+        ds_start $@
         exit 0
         ;;
     sl|start-logs)
-        up && logs
+        ds_start && ds_logs
         exit 0
         ;;
     r|restart)
-        stop && up
+        ds_stop && ds_start
         exit 0
         ;;
     rl|restart-logs)
-        stop && up && logs
+        ds_stop && ds_start && ds_logs
         exit 0
         ;;
     b|build)
-        build
+        ds_build
         exit 0
         ;;
     ru|reup)
-        reup
+        ds_reup
         exit 0
         ;;
     k|stop)
-        stop
+        ds_stop
         exit 0
         ;;
     reb|rebuild)
         shift
-        rebuild $@
+        ds_rebuild $@
         exit 0
         ;;
     d|destroy)
         shift
-        destroy $@
+        ds_destroy $@
         exit 0
         ;;
     ps|list)
-        list
+        ds_list
         exit 0
         ;;
     l|logs)
         shift
-        logs $@
+        ds_logs $@
         exit 0
         ;;
     e|exec)
-        fire $@
+        shift
+        ds_exec $@
         exit 0
         ;;
     g|go)
-        go $2 $3
+        ds_go $2 $3
         exit 0
         ;;
     gu|gou)
-        gou $2
+        ds_gou $2
         exit 0
         ;;
     ncc)
-        netteClearCache
+        ds_netteClearCache
         exit 0
         ;;
     a|adminer)
-        adminer
+        ds_adminer_run
         exit 0
         ;;
     m|migrations)
@@ -249,39 +253,39 @@ case "$1" in
             c|create)
                 shift
                 if [[ -z "$1" ]]; then
-                    migrationsCreate -h
+                    ds_migrations_create -h
                     exit 1
                 fi
-                migrationsCreate $@
+                ds_migrations_create $@
                 exit 0
                 ;;
             n|continue)
                 shift
-                migrationsContinue $@
+                ds_migrations_continue $@
                 exit 0
                 ;;
             r|reset)
                 shift
-                migrationsReset $@
+                ds_migrations_reset $@
                 exit 0
                 ;;
             -h)
-                migrationsCreate -h
+                ds_migrations_create -h
                 echo -e "\n-----\n"
-                migrationsContinue -h
+                ds_migrations_continue -h
                 echo -e "\n-----\n"
-                migrationsReset -h
+                ds_migrations_reset -h
                 exit 1
                 ;;
             *)
-                migrationsUsage
+                ds_migrations_usage
                 exit 1
                 ;;
         esac
         exit 0
         ;;
     *)
-        usage
+        ds_usage
         exit 1
         ;;
 esac
