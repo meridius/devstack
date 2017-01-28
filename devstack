@@ -23,27 +23,27 @@ Options:
 
 Commands:
     Devstack:
-        s | up | start            Start
-        sl | start-logs           Start and follow logs
-        r | restart               Restart
-        rl | restart-logs         Restart and follow logs
-        b | build                 Build
-        ru | reup                 Build & Start
-        k | stop                  Stop
-        d | destroy               Destroy
-        l | logs                  Follow the devstack logs
+        s | up | start [service]       Start
+        sl | start-logs                Start and follow logs
+        r | restart                    Restart
+        rl | restart-logs              Restart and follow logs
+        b | build                      Build
+        ru | reup                      Build & Start
+        k | stop                       Stop
+        d | destroy [service]          Destroy
+        l | logs [service]             Follow the devstack logs
 
     Service:
-        reb | rebuild [service]   Rebuild service
-        ps | list                 List services in devstack
-        e | exec                  Exec command in service
-        g | go [service]          Attach to specified service in devstack
-        gu | gou                  Attach to specified service in devstack as predefined user
+        reb | rebuild [service]        Rebuild service
+        ps | list                      List services in devstack
+        e | exec [service] [command]   Exec command in service
+        g | go [service]               Attach to specified service in devstack
+        gu | gou [service] [command]   Attach to specified service in devstack as predefined user
 
     Special:
-        ncc                       Clear Nette cache of php service
-        a | adminer               Run service with Adminer on http://localhost:81
-        m | migrations            The Nextras Migrations submodule
+        ncc                            Clear Nette cache of php service
+        a | adminer                    Run service with Adminer on http://localhost:81
+        m | migrations                 The Nextras Migrations submodule
 EOF
 }
 
@@ -57,7 +57,7 @@ call() {
 
 up() {
     # -d = detached mode
-    call up -d --remove-orphans
+    call up -d --remove-orphans $@
 }
 
 build() {
@@ -74,13 +74,11 @@ stop() {
 }
 
 destroy() {
-    call stop
+    call stop $@
     call rm -f $@
 }
 
 rebuild() {
-    shift
-    # echo destroy $@
     destroy $@
     build
 }
@@ -90,7 +88,7 @@ list() {
 }
 
 logs() {
-    call logs --follow
+    call logs --follow $@
 }
 
 fire() {
@@ -178,7 +176,8 @@ migrationsReset() {
 # Main switch
 case "$1" in
     s|up|start)
-        up
+        shift
+        up $@
         exit 0
         ;;
     sl|start-logs)
@@ -206,11 +205,13 @@ case "$1" in
         exit 0
         ;;
     reb|rebuild)
+        shift
         rebuild $@
         exit 0
         ;;
     d|destroy)
-        destroy
+        shift
+        destroy $@
         exit 0
         ;;
     ps|list)
@@ -218,7 +219,8 @@ case "$1" in
         exit 0
         ;;
     l|logs)
-        logs
+        shift
+        logs $@
         exit 0
         ;;
     e|exec)
