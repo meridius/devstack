@@ -29,16 +29,17 @@ Commands:
         rl | restart-logs              Restart and follow logs
         b | build                      Build
         ru | reup                      Build & Start
-        k | stop                       Stop
+        k | stop [service]             Stop
         d | destroy [service]          Destroy
         l | logs [service]             Follow the devstack logs
 
     Service:
         reb | rebuild [service]        Rebuild service
         ps | list                      List services in devstack
-        e | exec [service] [command]   Exec command in service
-        g | go [service]               Attach to specified service in devstack
-        gu | gou [service] [command]   Attach to specified service in devstack as predefined user
+        run <service> <command>        Exec command in service
+        e | exec <service> <command>   Exec command in running service
+        g | go <service>               Attach to specified service in devstack
+        gu | gou <service> <command>   Attach to specified service in devstack as predefined user
 
     Special:
         ncc                            Clear Nette cache of php service
@@ -70,7 +71,7 @@ ds_reup() {
 }
 
 ds_stop() {
-    ds_call stop
+    ds_call stop $@
 }
 
 ds_destroy() {
@@ -91,6 +92,11 @@ ds_list() {
 ds_logs() {
     # --follow = Follow log output.
     ds_call logs --follow $@
+}
+
+ds_run() {
+    echo "Exit the service by ^P^Q or run with -d next time."
+    ds_call run $*
 }
 
 ds_exec() {
@@ -204,7 +210,8 @@ case "$1" in
         exit 0
         ;;
     k|stop)
-        ds_stop
+        shift
+        ds_stop $@
         exit 0
         ;;
     reb|rebuild)
@@ -224,6 +231,11 @@ case "$1" in
     l|logs)
         shift
         ds_logs $@
+        exit 0
+        ;;
+    run)
+        shift
+        ds_run $@
         exit 0
         ;;
     e|exec)
