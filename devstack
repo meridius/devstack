@@ -34,7 +34,7 @@ Commands:
         l | logs [service]             Follow the devstack logs
 
     Service:
-        reb | rebuild [service]        Rebuild service
+        reb | rebuild [-s] [service]   Rebuild service (and start again)
         ps | list                      List services in devstack
         run <service> <command>        Exec command in service
         e | exec <service> <command>   Exec command in running service
@@ -216,7 +216,16 @@ case "$1" in
         ;;
     reb|rebuild)
         shift
-        ds_rebuild $@
+        case "$1" in
+            -s)
+                shift
+                ds_rebuild $@
+                ds_start $@
+                ;;
+            *)
+                ds_rebuild $@
+                ;;
+        esac
         exit 0
         ;;
     d|destroy)
