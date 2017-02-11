@@ -53,12 +53,12 @@ ds_call() {
     USER_NAME=${USER_NAME} \
     USER_UID=${USER_UID} \
     USER_GID=${USER_GID} \
-    docker-compose --file $COMPOSE $*
+    docker-compose --file "$COMPOSE" "$@"
 }
 
 ds_start() {
     # -d = Detached mode: Run containers in the background, print new container names.
-    ds_call up -d --remove-orphans $@
+    ds_call up -d --remove-orphans "$@"
 }
 
 ds_build() {
@@ -71,17 +71,17 @@ ds_reup() {
 }
 
 ds_stop() {
-    ds_call stop $@
+    ds_call stop "$@"
 }
 
 ds_destroy() {
-    ds_call stop $@
+    ds_call stop "$@"
     # -f = Don't ask to confirm removal.
-    ds_call rm -f $@
+    ds_call rm -f "$@"
 }
 
 ds_rebuild() {
-    ds_destroy $@
+    ds_destroy "$@"
     ds_build
 }
 
@@ -91,24 +91,24 @@ ds_list() {
 
 ds_logs() {
     # --follow = Follow log output.
-    ds_call logs --follow $@
+    ds_call logs --follow "$@"
 }
 
 ds_run() {
     echo "Exit the service by ^P^Q or run with -d next time."
-    ds_call run $*
+    ds_call run "$@"
 }
 
 ds_exec() {
-    ds_call exec $*
+    ds_call exec "$@"
 }
 
 ds_go() {
-    ds_call exec $1 /bin/bash
+    ds_call exec "$1" /bin/bash
 }
 
 ds_gou() {
-    ds_call exec $1 su $USER_NAME
+    ds_call exec "$1" su $USER_NAME
 }
 
 ds_netteClearCache() {
@@ -160,25 +160,25 @@ EOF
 }
 
 ds_migrations_get_cmd() {
-    action=$1
+    action="$1"
     index="php www/index.php"
     migrationsCmd="migrations:"
-    echo $index ${migrationsCmd}${action}
+    echo "$index" "${migrationsCmd}${action}"
 }
 
 ds_migrations_create() {
     migrationsCmd=`ds_migrations_get_cmd "create"`
-    ds_call exec ${PHP_SERVICE} $migrationsCmd $*
+    ds_call exec ${PHP_SERVICE} $migrationsCmd "$@"
 }
 
 ds_migrations_continue() {
     migrationsCmd=`ds_migrations_get_cmd "continue"`
-    ds_call exec ${PHP_SERVICE} $migrationsCmd $*
+    ds_call exec ${PHP_SERVICE} $migrationsCmd "$@"
 }
 
 ds_migrations_reset() {
     migrationsCmd=`ds_migrations_get_cmd "reset"`
-    ds_call exec ${PHP_SERVICE} $migrationsCmd $*
+    ds_call exec ${PHP_SERVICE} $migrationsCmd "$@"
 }
 
 ds_switch_main() {
@@ -200,7 +200,7 @@ ds_switch_main() {
             ;;
         s|up|start)
             shift
-            ds_start $@
+            ds_start "$@"
             ;;
         sl|start-logs)
             ds_start && ds_logs
@@ -219,45 +219,45 @@ ds_switch_main() {
             ;;
         k|stop)
             shift
-            ds_stop $@
+            ds_stop "$@"
             ;;
         reb|rebuild)
             shift
             case "$1" in
                 -s)
                     shift
-                    ds_rebuild $@
-                    ds_start $@
+                    ds_rebuild "$@"
+                    ds_start "$@"
                     ;;
                 *)
-                    ds_rebuild $@
+                    ds_rebuild "$@"
                     ;;
             esac
             ;;
         d|destroy)
             shift
-            ds_destroy $@
+            ds_destroy "$@"
             ;;
         ps|list)
             ds_list
             ;;
         l|logs)
             shift
-            ds_logs $@
+            ds_logs "$@"
             ;;
         run)
             shift
-            ds_run $@
+            ds_run "$@"
             ;;
         e|exec)
             shift
-            ds_exec $@
+            ds_exec "$@"
             ;;
         g|go)
-            ds_go $2 $3
+            ds_go "$2" "$3"
             ;;
         gu|gou)
-            ds_gou $2
+            ds_gou "$2"
             ;;
         ncc)
             ds_netteClearCache
@@ -274,15 +274,15 @@ ds_switch_main() {
                         ds_migrations_create -h
                         exit 1
                     fi
-                    ds_migrations_create $@
+                    ds_migrations_create "$@"
                     ;;
                 n|continue)
                     shift
-                    ds_migrations_continue $@
+                    ds_migrations_continue "$@"
                     ;;
                 r|reset)
                     shift
-                    ds_migrations_reset $@
+                    ds_migrations_reset "$@"
                     ;;
                 -h)
                     ds_migrations_create -h
