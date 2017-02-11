@@ -8,8 +8,7 @@ VERSION=1.1
 PHP_SERVICE=php
 
 
-ds_usage() {
-cat << EOF
+read -r -d '' USAGE_DEVSTACK <<EOF
 Usage: ${0##*/} [-h]
 
 Control your devstack.
@@ -45,6 +44,38 @@ Commands:
         a | adminer                    Run service with Adminer on http://localhost:81
         m | migrations                 The Nextras Migrations submodule
 EOF
+
+
+read -r -d '' USAGE_MIGRATIONS <<EOF
+Usage: ${0##*/} migrations
+
+Nextras Migrations submodule for Devstack
+
+Options:
+    -h | --help     Detailed help for each command.
+                    Other arguments are passed too.
+
+Commands:
+    c | create      Command migrations:create
+                    Creates new migration file with proper name (e.g. 2015-03-14-130836-label.sql)
+        <type>      One of S/B/D (structures/basic data/dummy data)
+        <label>     Short description
+
+    n | continue    Command migrations:continue
+                    Updates database schema by running all new migrations.
+                    If table 'migrations' does not exist in current database, it is created automatically.
+        [--production]
+                    Will not import dummy data
+
+    r | reset       Command migrations:reset
+                    Drops current database and recreates it from scratch (runs all migrations).
+        [--production]
+                    Will not import dummy data
+EOF
+
+
+ds_usage() {
+    echo "$USAGE_DEVSTACK"
 }
 
 # current directory specifies project name
@@ -130,32 +161,7 @@ ds_adminer_run() {
 }
 
 ds_migrations_usage() {
-cat << EOF
-Usage: ${0##*/} migrations
-
-Nextras Migrations submodule for Devstack
-
-Options:
-    -h | --help     Detailed help for each command.
-                    Other arguments are passed too.
-
-Commands:
-    c | create      Command migrations:create
-                    Creates new migration file with proper name (e.g. 2015-03-14-130836-label.sql)
-        <type>      One of S/B/D (structures/basic data/dummy data)
-        <label>     Short description
-
-    n | continue    Command migrations:continue
-                    Updates database schema by running all new migrations.
-                    If table 'migrations' does not exist in current database, it is created automatically.
-        [--production]
-                    Will not import dummy data
-
-    r | reset       Command migrations:reset
-                    Drops current database and recreates it from scratch (runs all migrations).
-        [--production]
-                    Will not import dummy data
-EOF
+    echo "$USAGE_MIGRATIONS"
 }
 
 ds_migrations_get_cmd() {
