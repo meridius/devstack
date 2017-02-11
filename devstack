@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# Configuration
-PREFIX=devstack
 COMPOSE=docker-compose.yml
 USER_NAME=`id -un`
 USER_UID=`id -u`
@@ -9,7 +7,7 @@ USER_GID=`id -g`
 VERSION=1.1
 PHP_SERVICE=php
 
-# Functions
+
 ds_usage() {
 cat << EOF
 Usage: ${0##*/} [-h]
@@ -19,6 +17,8 @@ Control your devstack.
 Version: $VERSION
 
 Options:
+    -c          Path to docker-compose.yml. Defaults to 'docker-compose.yml' in current dir
+    -p          Name of PHP service. Defaults to 'php'
     -h          Display this help and exit.
 
 Commands:
@@ -181,133 +181,131 @@ ds_migrations_reset() {
     ds_call exec ${PHP_SERVICE} $migrationsCmd $*
 }
 
-
-# Main switch
-case "$1" in
-    s|up|start)
-        shift
-        ds_start $@
-        exit 0
-        ;;
-    sl|start-logs)
-        ds_start && ds_logs
-        exit 0
-        ;;
-    r|restart)
-        ds_stop && ds_start
-        exit 0
-        ;;
-    rl|restart-logs)
-        ds_stop && ds_start && ds_logs
-        exit 0
-        ;;
-    b|build)
-        ds_build
-        exit 0
-        ;;
-    ru|reup)
-        ds_reup
-        exit 0
-        ;;
-    k|stop)
-        shift
-        ds_stop $@
-        exit 0
-        ;;
-    reb|rebuild)
-        shift
-        case "$1" in
-            -s)
-                shift
-                ds_rebuild $@
-                ds_start $@
-                ;;
-            *)
-                ds_rebuild $@
-                ;;
-        esac
-        exit 0
-        ;;
-    d|destroy)
-        shift
-        ds_destroy $@
-        exit 0
-        ;;
-    ps|list)
-        ds_list
-        exit 0
-        ;;
-    l|logs)
-        shift
-        ds_logs $@
-        exit 0
-        ;;
-    run)
-        shift
-        ds_run $@
-        exit 0
-        ;;
-    e|exec)
-        shift
-        ds_exec $@
-        exit 0
-        ;;
-    g|go)
-        ds_go $2 $3
-        exit 0
-        ;;
-    gu|gou)
-        ds_gou $2
-        exit 0
-        ;;
-    ncc)
-        ds_netteClearCache
-        exit 0
-        ;;
-    a|adminer)
-        ds_adminer_run
-        exit 0
-        ;;
-    m|migrations)
-        shift
-        case "$1" in
-            c|create)
-                shift
-                if [[ -z "$1" ]]; then
+ds_switch_main() {
+    case "$1" in
+        -c)
+            shift
+            [[ ! -f "$1" ]] \
+                && echo "Config file $1 does not exist!" \
+                && exit 1
+            COMPOSE="$1"
+            shift
+            ds_switch_main "$@"
+            ;;
+        -p)
+            shift
+            PHP_SERVICE="$1"
+            shift
+            ds_switch_main "$@"
+            ;;
+        s|up|start)
+            shift
+            ds_start $@
+            ;;
+        sl|start-logs)
+            ds_start && ds_logs
+            ;;
+        r|restart)
+            ds_stop && ds_start
+            ;;
+        rl|restart-logs)
+            ds_stop && ds_start && ds_logs
+            ;;
+        b|build)
+            ds_build
+            ;;
+        ru|reup)
+            ds_reup
+            ;;
+        k|stop)
+            shift
+            ds_stop $@
+            ;;
+        reb|rebuild)
+            shift
+            case "$1" in
+                -s)
+                    shift
+                    ds_rebuild $@
+                    ds_start $@
+                    ;;
+                *)
+                    ds_rebuild $@
+                    ;;
+            esac
+            ;;
+        d|destroy)
+            shift
+            ds_destroy $@
+            ;;
+        ps|list)
+            ds_list
+            ;;
+        l|logs)
+            shift
+            ds_logs $@
+            ;;
+        run)
+            shift
+            ds_run $@
+            ;;
+        e|exec)
+            shift
+            ds_exec $@
+            ;;
+        g|go)
+            ds_go $2 $3
+            ;;
+        gu|gou)
+            ds_gou $2
+            ;;
+        ncc)
+            ds_netteClearCache
+            ;;
+        a|adminer)
+            ds_adminer_run
+            ;;
+        m|migrations)
+            shift
+            case "$1" in
+                c|create)
+                    shift
+                    if [[ -z "$1" ]]; then
+                        ds_migrations_create -h
+                        exit 1
+                    fi
+                    ds_migrations_create $@
+                    ;;
+                n|continue)
+                    shift
+                    ds_migrations_continue $@
+                    ;;
+                r|reset)
+                    shift
+                    ds_migrations_reset $@
+                    ;;
+                -h)
                     ds_migrations_create -h
+                    echo -e "\n-----\n"
+                    ds_migrations_continue -h
+                    echo -e "\n-----\n"
+                    ds_migrations_reset -h
                     exit 1
-                fi
-                ds_migrations_create $@
-                exit 0
-                ;;
-            n|continue)
-                shift
-                ds_migrations_continue $@
-                exit 0
-                ;;
-            r|reset)
-                shift
-                ds_migrations_reset $@
-                exit 0
-                ;;
-            -h)
-                ds_migrations_create -h
-                echo -e "\n-----\n"
-                ds_migrations_continue -h
-                echo -e "\n-----\n"
-                ds_migrations_reset -h
-                exit 1
-                ;;
-            *)
-                ds_migrations_usage
-                exit 1
-                ;;
-        esac
-        exit 0
-        ;;
-    *)
-        ds_usage
-        exit 1
-        ;;
-esac
-shift
+                    ;;
+                *)
+                    ds_migrations_usage
+                    exit 1
+                    ;;
+            esac
+            ;;
+        *)
+            ds_usage
+            exit 1
+            ;;
+    esac
+    shift
+}
+
+
+ds_switch_main "$@"
+exit 0
