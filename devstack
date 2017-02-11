@@ -38,8 +38,7 @@ Commands:
         ps | list                      List services in devstack
         run <service> <command>        Exec command in service
         e | exec <service> <command>   Exec command in running service
-        g | go <service>               Attach to specified service in devstack
-        gu | gou <service> <command>   Attach to specified service in devstack as predefined user
+        g | go <service> [user]        Attach to specified service in devstack (as given user)
 
     Special:
         ncc                            Clear Nette cache of php service
@@ -108,7 +107,7 @@ ds_go() {
 }
 
 ds_gou() {
-    ds_call exec "$1" su $USER_NAME
+    ds_call exec --user "$2" "$1" /bin/bash
 }
 
 ds_netteClearCache() {
@@ -254,10 +253,15 @@ ds_switch_main() {
             ds_exec "$@"
             ;;
         g|go)
-            ds_go "$2" "$3"
-            ;;
-        gu|gou)
-            ds_gou "$2"
+            shift
+            if [[ "$#" -eq 1 ]]; then
+                ds_go "$1"
+            elif [[ "$#" -eq 2 ]]; then
+                ds_gou "$1" "$2"
+            else
+                ds_usage
+                exit 1
+            fi
             ;;
         ncc)
             ds_netteClearCache
