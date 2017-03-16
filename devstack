@@ -1,6 +1,7 @@
 #!/bin/bash
 
 COMPOSE=docker-compose.yml
+GROUP_NAME=`id -gn`
 USER_NAME=`id -un`
 USER_UID=`id -u`
 USER_GID=`id -g`
@@ -80,6 +81,7 @@ ds_usage() {
 
 # current directory specifies project name
 ds_call() {
+    GROUP_NAME=${GROUP_NAME} \
     USER_NAME=${USER_NAME} \
     USER_UID=${USER_UID} \
     USER_GID=${USER_GID} \
@@ -265,6 +267,15 @@ ds_switch_main() {
                 ds_go "$1"
             elif [[ "$#" -eq 2 ]]; then
                 ds_gou "$1" "$2"
+            else
+                ds_usage
+                exit 1
+            fi
+            ;;
+        gu|gou)
+            shift
+            if [[ "$#" -eq 1 ]]; then
+                ds_gou "$1" "${USER_NAME}"
             else
                 ds_usage
                 exit 1
