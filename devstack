@@ -226,7 +226,7 @@ ds_switch_main() {
             shift
             ds_stop "$@"
             ;;
-        reb|rebuild)
+        rb|reb|rebuild)
             shift
             case "$1" in
                 -s)
