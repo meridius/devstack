@@ -96,8 +96,8 @@ ds_build() {
 }
 
 ds_reup() {
-    ds_build
-    ds_start
+    ds_build \
+    && ds_start
 }
 
 ds_stop() {
@@ -105,14 +105,15 @@ ds_stop() {
 }
 
 ds_destroy() {
-    ds_call stop "$@"
     # -f = Don't ask to confirm removal.
-    ds_call rm -f "$@"
+    ds_call stop "$@" \
+    && ds_call rm -f "$@"
 }
 
 ds_rebuild() {
-    ds_destroy "$@"
-    ds_build
+    ds_destroy "$@" \
+    && ds_build \
+    || exit 1
 }
 
 ds_list() {
@@ -231,8 +232,8 @@ ds_switch_main() {
             case "$1" in
                 -s)
                     shift
-                    ds_rebuild "$@"
-                    ds_start "$@"
+                    ds_rebuild "$@" \
+                    && ds_start "$@"
                     ;;
                 *)
                     ds_rebuild "$@"
