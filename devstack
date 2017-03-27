@@ -136,6 +136,10 @@ ds_exec() {
     ds_call exec "$@"
 }
 
+ds_execu() {
+    ds_call exec --user ${USER_NAME} "$@"
+}
+
 ds_go() {
     ds_call exec "$1" /bin/bash
 }
@@ -260,6 +264,10 @@ ds_switch_main() {
         e|exec)
             shift
             ds_exec "$@"
+            ;;
+        eu|execu)
+            shift
+            ds_execu "$@"
             ;;
         g|go)
             shift
