@@ -33,7 +33,7 @@ Commands:
         l | logs [service]             Follow the devstack logs
 
     Service:
-        reb | rebuild [-s] [service]   Rebuild service (and start again)
+        rb | rebuild [-s] [service]   Rebuild service (and start again)
         ps | list                      List services in devstack
         run <service> <command>        Exec command in service
         e | exec <service> <command>   Exec command in running service
@@ -261,14 +261,40 @@ ds_switch_main() {
             ;;
         g|go)
             shift
-            if [[ "$#" -eq 1 ]]; then
-                ds_go "$1"
-            elif [[ "$#" -eq 2 ]]; then
-                ds_gou "$1" "$2"
-            else
-                ds_usage
-                exit 1
-            fi
+            g_user=''
+            g_shell='/bin/bash'
+            g_others=''
+
+            for a in "$@"; do
+                case "$a" in
+                    -u)
+                        g_user_found=true
+                        continue
+                        ;;
+                    -s)
+                        g_shell_found=true
+                        continue
+                        ;;
+                    *)
+                        if [[ $g_user_found = true ]]; then
+                            g_user="$a"
+                            g_user_found=false
+                        elif [[ $g_shell_found = true ]]; then
+                            g_shell="$a"
+                            g_shell_found=false
+                        else
+                            [[ -z "$g_others" ]] \
+                                && g_others="$a" \
+                                || g_others="$g_others $a"
+                        fi
+                        ;;
+                esac
+            done
+
+            [[ ! -z "$g_user" ]] && g_user=" --user $g_user"
+            [[ -z "$g_others" ]] && ds_usage && exit 1
+
+            ds_exec"$g_user" "$g_others" "$g_shell"
             ;;
         ncc)
             ds_netteClearCache
