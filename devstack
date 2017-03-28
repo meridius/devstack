@@ -33,7 +33,7 @@ Commands:
         l | logs [service]             Follow the devstack logs
 
     Service:
-        rb | rebuild [-s] [service]   Rebuild service (and start again)
+        rb | reb | rebuild [-s] [service]   Rebuild service (and start again)
         ps | list                      List services in devstack
         run <service> <command>        Exec command in service
         e | exec <service> <command>   Exec command in running service
