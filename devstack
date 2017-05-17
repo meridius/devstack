@@ -141,11 +141,11 @@ ds_execu() {
 }
 
 ds_go() {
-    ds_call exec "$1" /bin/bash
+    ds_call exec "$1" /bin/bash --login
 }
 
 ds_gou() {
-    ds_call exec --user "$2" "$1" /bin/bash
+    ds_call exec --user "$2" "$1" /bin/bash --login
 }
 
 ds_netteClearCache() {
