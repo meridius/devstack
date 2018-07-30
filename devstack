@@ -94,7 +94,11 @@ ds_start() {
 }
 
 ds_build() {
-    ds_call build
+    ds_call build "$@"
+}
+
+ds_build_no_cache() {
+    ds_call build --no-cache "$@"
 }
 
 ds_reup() {
@@ -114,7 +118,13 @@ ds_destroy() {
 
 ds_rebuild() {
     ds_destroy "$@" \
-    && ds_build \
+    && ds_build "$@" \
+    || exit 1
+}
+
+ds_rebuild_no_cache() {
+    ds_destroy "$@" \
+    && ds_build_no_cache "$@" \
     || exit 1
 }
 
@@ -145,7 +155,7 @@ ds_go() {
 }
 
 ds_gou() {
-    ds_call exec --user "$2" "$1" /bin/bash --login
+    ds_call exec --user "$2" "$1" /bin/sh --login
 }
 
 ds_netteClearCache() {
@@ -239,6 +249,11 @@ ds_switch_main() {
                 -s)
                     shift
                     ds_rebuild "$@" \
+                    && ds_start "$@"
+                    ;;
+                -n)
+                    shift
+                    ds_rebuild_no_cache "$@" \
                     && ds_start "$@"
                     ;;
                 *)
